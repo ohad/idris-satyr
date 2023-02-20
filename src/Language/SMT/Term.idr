@@ -32,8 +32,28 @@ data Var : Context sig -> sig.sort [] -> Type where
   Here : Var (gamma :< (x :! ty)) ty
   There : Var gamma ty -> Var (gamma :< xtype) ty
 
+namespace Segment
+  public export
+  data Var : Segment sig -> sig.sort [] -> Type where
+    Here : Var ((x :! ty) :: xi) ty
+    There : Var gamma ty -> Var (xtype :: gamma) ty
+
+  public export
+  data All : (xi : Segment sig) -> ((ty : sig.sort []) -> Var xi ty -> Type) -> Type where
+    Nil : All [] p
+    (::) : (0 p : (ty' : sig.sort []) -> Var {sig} ((x :! ty) :: xi) ty' -> Type) ->
+      p ty (Segment.Here) ->
+      All xi (\ty',pos => p ty' (There pos)) -> All ((x :! ty) :: xi) ?h2
+
 public export
 data Term : {sig : Signature} -> Context sig -> sig.sort [] -> Type where
   AVar : Var gamma ty -> Term gamma ty
   (@@) : (f : Symbol sig arity ty) -> All (Term gamma) arity ->
          Term {sig} gamma ty
+  Exists, Forall : (xi : Segment sig) -> Term gamma' ty ->
+    (0 ford : gamma' = gamma <>< xi) =>
+    Term gamma ty
+  Let : (xi : Segment sig) -> All xi (\ty',pos => Term gamma ty') ->
+    Term gamma' ty ->
+    (0 ford : gamma' = gamma <>< xi) =>
+    Term gamma ty
