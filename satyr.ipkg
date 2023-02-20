@@ -20,6 +20,13 @@ depends
 modules
   = Language.SAT
   , Language.SAT.Dimacs
+  , Language.SMT.Response
+  , Language.SMT.Command
+  , Language.SMT.SExp
+  , Language.SMT.Signature
+  , Language.SMT.Term
+  , Language.SMT.Theory.Core
+  , Language.SMT.Theory.Ints
 
 -- main file (i.e. file to load at REPL)
 -- main =
