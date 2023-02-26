@@ -46,6 +46,7 @@ Sig = MkSignature
   { SortName
   , FunName
   , ConName = \_,_,_ => Void
+  , ConCover = \case _ impossible
   , SelName = \_,_ => Void
   , TesterName = \_,_ => Void
   }

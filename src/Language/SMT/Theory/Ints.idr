@@ -33,9 +33,14 @@ public export
 SInt : (SortName).Sort params
 SInt = Sort (Just IntName) []
 
+--public export
+--SList : (SortName).Sort params -> (SortName).Sort params
+--SList a = Sort (Just ListName) [a]
+
 data FunName : forall n. (0 params : List String) ->
     (Vect n ((SortName).Sort params)) -> (SortName).Sort params -> Type
     where
+  LIT : (n : Integer) -> FunName [] [] SInt
   NEG ,
   ABS : FunName [] [SInt] SInt
   PLUS ,
@@ -46,3 +51,13 @@ data FunName : forall n. (0 params : List String) ->
   LT  ,
   GEQ ,
   GT  : FunName [] [SInt, SInt] SBool
+
+Sig : Signature
+Sig = MkSignature
+  { SortName
+  , FunName
+  , ConName = \_,_,_ => Void
+  , ConCover = \case IntName => Element [] (\case (Element _ _) impossible)
+  , SelName = \case _ impossible
+  , TesterName = \case _ impossible
+  }

@@ -32,3 +32,17 @@ SExpRep a => SExpRep (WithSuccess a) where
 
   fromSExp (Literal "success") = Just PureSuccess
   fromSExp x = fromSExp x
+
+public export
+data SATResponse = SAT | UNSAT | UNKNOWN
+
+public export
+SExpRep SATResponse where
+  toSExp SAT     = Literal "sat"
+  toSExp UNSAT   = Literal "unsat"
+  toSExp UNKNOWN = Literal "unknown"
+
+  fromSExp (Literal "sat"    ) = Just SAT
+  fromSExp (Literal "unsat"  ) = Just UNSAT
+  fromSExp (Literal "unknown") = Just UNKNOWN
+  fromSExp x = Nothing

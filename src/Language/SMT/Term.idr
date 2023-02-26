@@ -2,6 +2,7 @@ module Language.SMT.Term
 
 import Language.SMT.Signature
 
+import Data.Vect.Elem
 import Data.Vect.Quantifiers
 
 infix 3 :!
@@ -18,9 +19,8 @@ data Context : Signature -> Type where
   (:<) : (gamma : Context sig) -> Binding sig -> Context sig
 
 public export
-data Segment : Nat -> Signature -> Type where
-  Nil : Segment 0 sig
-  (::) : (xtype : Binding sig) -> (xi : Segment n sig) -> Segment (S n) sig
+Segment : Nat -> Signature -> Type
+Segment n sig = Vect n (Binding sig)
 
 public export
 (<><) : Context sig -> Segment n sig -> Context sig
@@ -33,7 +33,6 @@ data Var : Context sig -> sig.sort [] -> Type where
   There : Var gamma ty -> Var (gamma :< xtype) ty
 
 namespace Segment
-  public export
   data Var : Segment n sig -> sig.sort [] -> Type where
     Here : Var ((x :! ty) :: xi) ty
     There : Var gamma ty -> Var (xtype :: gamma) ty
@@ -45,21 +44,49 @@ namespace Segment
       p ty (Segment.Here) ->
       All xi (\ty',pos => p ty' (There pos)) -> All ((x :! ty) :: xi) ?h2
 
-public export
-data Pattern : sig.ConName params tys ty -> Segment n sig -> Type where
-  CatchAll : Pattern {ty} c [x :! ty]
-  {- I am here
-  Case     : (c : sig.ConName params tys ty) ->
-             (vars : Vect n String) ->
-             (0 ford :
-             Pattern c seg
-  -}
+-- TODO: include booleans
 
+indexFinAll : {0 xs : Vect n a} -> (i : Fin n) -> All p xs -> p (index i xs)
+indexFinAll FZ (prf :: _) = prf
+indexFinAll (FS i) (_ :: prfs) = indexFinAll i prfs
+
+zipWithAll : (xs : Vect n a) -> {0 ys : Vect n b} ->
+             (prfs : All p ys) ->
+             (g : (i : Fin n) -> q (f (index i xs) (index i ys))) ->
+             All q (zipWith f xs ys)
+zipWithAll [] [] g = []
+zipWithAll (x :: xs) (z :: zs) g = g 0 :: zipWithAll xs zs (\i => g $ FS i)
+
+vectUncurry : (xs : Vect n a) -> All p xs -> Vect n (x : a ** p x)
+vectUncurry [] [] = []
+vectUncurry (x :: xs) (prf :: prfs) = (x ** prf) :: vectUncurry xs prfs
+
+public export
+data Pattern : Segment n sig -> (ty : sig.sort []) -> Type where
+  CatchAll : {0 sig : Signature} ->
+    {0 ty : sig.sort []} ->
+    (x : String) -> Pattern {sig} [x :! ty] ty
+
+  Case     : {0 sig : Signature} -> forall n, k, tys, ty, ty', seg.
+             {0 seg : Segment n sig} ->
+             (c : sig.ConName {n} tys (k ** ty)) ->
+             (theta : Instantiation sig tys (k ** ty) []) ->
+             (vars : Vect n String) ->
+             (0 fordTy : ty' === Sort ty (snd theta)) =>
+             (0 fordSegment : seg ===
+               (zipWith (:!) vars $ forget $
+               zipWithAll tys (fst theta) {q = const (sig.sort [])}
+               {f = \ks,rt => sig.sort []}
+               $ \i => Sort (index i tys).snd
+                            (indexFinAll i (fst theta)))
+             ) =>
+            Pattern {sig} seg ty'
 public export
 data Term : {sig : Signature} -> Context sig -> sig.sort [] -> Type where
   AVar : Var gamma ty -> Term gamma ty
-  (@@) : (f : Symbol sig arity ty) -> All (Term gamma) arity ->
-         Term {sig} gamma ty
+  (@@) : (f : Symbol sig arity ty) -> (inst : Instantiation sig arity ty []) ->
+         All (\ksargs => Term gamma $ Sort ksargs.fst.snd ksargs.snd) (vectUncurry arity (fst inst)) ->
+         Term {sig} gamma (Sort ty.snd (snd inst))
   Exists, Forall : (xi : Segment n sig) -> Term gamma' ty ->
     (0 ford : gamma' = gamma <>< xi) =>
     Term gamma ty
@@ -67,3 +94,7 @@ data Term : {sig : Signature} -> Context sig -> sig.sort [] -> Type where
     Term gamma' ty ->
     (0 ford : gamma' = gamma <>< xi) =>
     Term gamma ty
+  Match : Term gamma ty ->
+    List (p : Pattern seg ty ** Term (gamma <>< seg) ty') ->
+    -- Cover!
+    Term gamma ty'

@@ -18,12 +18,12 @@ data Command : Type where
 
   -- 4.2.2. Modifying the assertion stack
 
-  ||| pushes n empty assertion levels onto the assertion stack. 2 If n
+  ||| pushes n empty assertion levels onto the assertion stack. If n
   ||| is 0, no assertion levels are pushed.
   Push : (n : Nat) -> Command
 
-  ||| n is smaller than the number of assertion levels in the stack,
-  ||| pops the n most-recent assertion levels from the stack.
+  ||| When n is smaller than the number of assertion levels in the
+  ||| stack, pops the n most-recent assertion levels from the stack.
   ||| When n = 0, no assertion levels are popped.
   |||
   ||| The first assertion level, which is not created by a push
@@ -73,6 +73,7 @@ data Command : Type where
   CheckSat -- Sugar
   CheckSatAssuming
   -}
+  CheckSAT : Command
 
   -- 4.2.6. Inspecting models
 
@@ -89,4 +90,5 @@ SExpRep Command where
 (.responseType) : Command -> Type
 --(Reset).responseType = ?responseType_rhs
 
+(CheckSAT).responseType = SATResponse
 _.responseType = WithSuccess Void
