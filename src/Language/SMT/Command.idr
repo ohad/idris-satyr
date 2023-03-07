@@ -2,7 +2,9 @@ module Language.SMT.Command
 
 import Language.SMT.SExp
 import Language.SMT.Response
+import Language.SMT.Theory
 
+public export
 data Command : Type where
   -- 4.1.1. Restarting and terminating
 
@@ -11,8 +13,9 @@ data Command : Type where
   Reset ,
   ||| instructs the solver to exit
   Exit  : Command
+  SetInfo : List String -> Command
+  SetLogic : Logic -> Command
   {- TODO:
-  SetLogic : Command
   SetOption : Command
   -}
 
@@ -45,11 +48,13 @@ data Command : Type where
 
   -- 4.2.3. Introducing new symbols
 
+  DeclareConst : Binding logic -> Command
+
+
   {- TODO:
   DeclareSort ,
   DefineSort ,
   DeclareFun ,
-  DeclareConst ,
   DeclareDatatypes ,
   DeclareDatatype  -- Sugar
   DefineFun        -- Sugar
@@ -60,9 +65,9 @@ data Command : Type where
 
   -- 4.2.4. Asserting and inspecting formulae
 
+  Assert : forall context.  Term context SBool -> Command
   {- TODO:
 
-  Assert ,
   GetAssertions
   -}
 
@@ -70,7 +75,7 @@ data Command : Type where
 
   {- TODO:
 
-  CheckSat -- Sugar
+  CheckSat -- ought to be sugar for the following:
   CheckSatAssuming
   -}
   CheckSAT : Command
@@ -83,10 +88,21 @@ data Command : Type where
 
   -- 4.2.9. Script information
 
+public export
 SExpRep Command where
-  toSExp = ?h2
-  fromSExp = ?h1
+  toSExp (SetLogic logic) = ?todo1
+  toSExp (DeclareConst xty) = AList (Literal "declare-const" :: toSExpList xty)
+  toSExp (Assert pred) = ?todo3
+  toSExp (Push n) = AList [Literal "push", ANumeral n]
+  toSExp (Pop n) = AList [Literal "pop", ANumeral n]
+  toSExp (Exit) = AList [Literal "exit"]
+  toSExp CheckSAT = AList [Literal "check-sat"]
+  toSExp x = ?h2
 
+  fromSExp (AList [Literal "check-sat"]) = Just CheckSAT
+  fromSExp _ = Nothing
+
+public export
 (.responseType) : Command -> Type
 --(Reset).responseType = ?responseType_rhs
 

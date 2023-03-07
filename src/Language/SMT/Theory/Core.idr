@@ -26,27 +26,25 @@ public export
 SortName : Nat -> Type
 SortName n = Void
 
-data FunName : forall n. (0 params : List String) ->
-    (Vect n ((SortName).Sort params)) -> (SortName).Sort params -> Type
+public export
+data FunName : FunNameType SortName
     where
-  TT  ,
-  FF  : FunName [] []      SBool
   NOT : FunName [] [SBool] SBool
+
   IMPLIES ,
   AND     ,
   OR      ,
-  XOR     : FunName []    [SBool    , SBool   ] SBool
+  XOR     : FunName []    [ SBool   , SBool   ] SBool
   EQ,NEQ  : FunName ["x"] [ Para "x", Para "x"] SBool
   ITE     : FunName ["x"] [ Para "x", Para "x"] (Para "x")
 
-
-
-Sig : Signature
-Sig = MkSignature
+public export
+Core : Signature
+Core = MkSignature
   { SortName
   , FunName
   , ConName = \_,_,_ => Void
-  , ConCover = \case _ impossible
-  , SelName = \_,_ => Void
-  , TesterName = \_,_ => Void
+  , ConCover   = \_ => \case _ impossible
+  , SelName    = \_ => \case _ impossible
+  , TesterName = \_ => \case _ impossible
   }

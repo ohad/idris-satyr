@@ -21,6 +21,7 @@ public export
 record Logic where
   constructor MkLogic
   theory : Theory
+  name : String
   language ,
   extensions ,
   values ,

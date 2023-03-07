@@ -6,6 +6,8 @@ import Data.Vect.Quantifiers
 import Data.List
 import Data.List.Quantifiers
 
+import Language.SMT.Theory
+
 {-
  :sorts ((Int 0))
 
@@ -37,8 +39,8 @@ SInt = Sort (Just IntName) []
 --SList : (SortName).Sort params -> (SortName).Sort params
 --SList a = Sort (Just ListName) [a]
 
-data FunName : forall n. (0 params : List String) ->
-    (Vect n ((SortName).Sort params)) -> (SortName).Sort params -> Type
+public export
+data FunName : FunNameType SortName
     where
   LIT : (n : Integer) -> FunName [] [] SInt
   NEG ,
@@ -52,12 +54,31 @@ data FunName : forall n. (0 params : List String) ->
   GEQ ,
   GT  : FunName [] [SInt, SInt] SBool
 
+public export
 Sig : Signature
 Sig = MkSignature
   { SortName
   , FunName
   , ConName = \_,_,_ => Void
-  , ConCover = \case IntName => Element [] (\case (Element _ _) impossible)
-  , SelName = \case _ impossible
-  , TesterName = \case _ impossible
+  , ConCover = \case
+      [] => \case IntName => Element [] (\case (Element _ _) impossible)
+      (p :: params) => \case _ impossible
+  , SelName = \case
+      [] => \case _ impossible
+      (p :: params) => \case _ impossible
+  , TesterName = \case
+      [] => \case _ impossible
+      (p :: params) => \case _ impossible
+  }
+
+public export
+Ints : Theory
+Ints = MkTheory
+  { sig = Sig
+  -- TODO: populate with actual strings
+  , sortDescription = ""
+  , funDescription  = ""
+  , definition      = ""
+  , values          = ""
+  , notes           = ""
   }

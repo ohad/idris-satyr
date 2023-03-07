@@ -5,6 +5,8 @@ import Language.SMT.Signature
 import Data.Vect.Elem
 import Data.Vect.Quantifiers
 
+import Language.SMT.SExp
+
 infix 3 :!
 
 public export
@@ -62,31 +64,34 @@ vectUncurry [] [] = []
 vectUncurry (x :: xs) (prf :: prfs) = (x ** prf) :: vectUncurry xs prfs
 
 public export
+forget : {xs : List a} -> All (const b) xs -> Vect (length xs) b
+forget [] = []
+forget (y :: ys) = y :: forget ys
+
+public export
 data Pattern : Segment n sig -> (ty : sig.sort []) -> Type where
   CatchAll : {0 sig : Signature} ->
     {0 ty : sig.sort []} ->
     (x : String) -> Pattern {sig} [x :! ty] ty
 
-  Case     : {0 sig : Signature} -> forall n, k, tys, ty, ty', seg.
+  Case     : {0 sig : Signature} -> forall n, k, tys, ty, args, seg, s.
              {0 seg : Segment n sig} ->
-             (c : sig.ConName {n} tys (k ** ty)) ->
-             (theta : Instantiation sig tys (k ** ty) []) ->
+             (c : sig.ConName {n} params tys s) ->
+             (subst : sig.TySubst params []) ->
              (vars : Vect n String) ->
-             (0 fordTy : ty' === Sort ty (snd theta)) =>
-             (0 fordSegment : seg ===
-               (zipWith (:!) vars $ forget $
-               zipWithAll tys (fst theta) {q = const (sig.sort [])}
-               {f = \ks,rt => sig.sort []}
-               $ \i => Sort (index i tys).snd
-                            (indexFinAll i (fst theta)))
+             (0 fordTy : args === forget subst) =>
+             (0 fordSegment : seg === zipWith (\x,u => x :! u.subst subst)
+                                        vars tys
              ) =>
-            Pattern {sig} seg ty'
+            Pattern {sig} seg (Sort (Just s) args)
+
 public export
 data Term : {sig : Signature} -> Context sig -> sig.sort [] -> Type where
   AVar : Var gamma ty -> Term gamma ty
-  (@@) : (f : Symbol sig arity ty) -> (inst : Instantiation sig arity ty []) ->
-         All (\ksargs => Term gamma $ Sort ksargs.fst.snd ksargs.snd) (vectUncurry arity (fst inst)) ->
-         Term {sig} gamma (Sort ty.snd (snd inst))
+  (@@) : (f : Symbol sig params arity ty) -> (theta : sig.TySubst params []) ->
+         All (\x => Term gamma $ x.subst theta) arity ->
+         (0 fordSort : ty' === ty.subst theta) =>
+         Term {sig} gamma ty'
   Exists, Forall : (xi : Segment n sig) -> Term gamma' ty ->
     (0 ford : gamma' = gamma <>< xi) =>
     Term gamma ty
@@ -98,3 +103,9 @@ data Term : {sig : Signature} -> Context sig -> sig.sort [] -> Type where
     List (p : Pattern seg ty ** Term (gamma <>< seg) ty') ->
     -- Cover!
     Term gamma ty'
+
+export
+ListSExpRep (Binding sig) where
+  toSExpList (name :! type) = [Literal name, ?h1]
+  fromSExpList [Literal name, mtype] = Just (name :! ?h2)  -- TODO: deal with parsing sort
+  fromSExpList _ = Nothing
